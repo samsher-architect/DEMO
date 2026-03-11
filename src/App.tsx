@@ -4,13 +4,29 @@
  */
 
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Showcase from './pages/Showcase';
 import Admin from './pages/Admin';
 import Blogs from './pages/Blogs';
 import About from './pages/About';
+
+// --- PROTECTED ROUTE LOGIC ---
+// This component wraps around any page that requires login.
+// It checks if 'currentUser' exists in localStorage.
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = !!localStorage.getItem('currentUser');
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    // If not logged in, redirect to login page immediately
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // If logged in, allow them to see the page
+  return <>{children}</>;
+};
 
 export default function App() {
   // Global anti-inspect and anti-download protection
@@ -58,15 +74,19 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        {/* PUBLIC ROUTE - Anyone can access the login page */}
         <Route path="/login" element={<Login />} />
-        <Route path="/showcase" element={<Showcase />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/blogs" element={<Blogs />} />
-        <Route path="/about" element={<About />} />
+        
+        {/* PROTECTED ROUTES - Must be logged in to access these */}
+        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/showcase" element={<ProtectedRoute><Showcase /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/blogs" element={<ProtectedRoute><Blogs /></ProtectedRoute>} />
+        <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+        
+        {/* Catch all - Redirects unknown URLs to the home page (which will then redirect to login if not authenticated) */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
 }
-
